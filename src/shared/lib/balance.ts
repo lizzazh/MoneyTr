@@ -1,4 +1,5 @@
 import type { Transaction, BalanceResult, TransactionStats } from '@/shared/types'
+import { Timestamp } from 'firebase/firestore'
 
 /**
  * Calculates the net mutual balance between two users (or currentUser and virtual partner).
@@ -18,7 +19,8 @@ export function calcBalance(
   currentUserId: string,
   partnerId: string
 ): BalanceResult {
-  const confirmed = transactions.filter((t) => t.status === 'confirmed')
+  const validTransactions = transactions.filter((t) => !t.isDeleted)
+  const confirmed = validTransactions.filter((t) => t.status === 'confirmed')
 
   // Partner paid for currentUser → currentUser owes partner
   const iOwePartner = confirmed
@@ -61,16 +63,26 @@ export function calcBalance(
  * Calculates aggregate statistics for a list of transactions.
  */
 export function calcStats(transactions: Transaction[]): TransactionStats {
-  const confirmed = transactions.filter((t) => t.status === 'confirmed')
-  const pending = transactions.filter((t) => t.status === 'pending')
-  const rejected = transactions.filter((t) => t.status === 'rejected')
+  const validTransactions = transactions.filter((t) => !t.isDeleted)
+  const confirmed = validTransactions.filter((t) => t.status === 'confirmed')
+  const pending = validTransactions.filter((t) => t.status === 'pending')
+  const rejected = validTransactions.filter((t) => t.status === 'rejected')
+
+  let lastActivity: Timestamp | null = null
+  if (validTransactions.length > 0) {
+    lastActivity = validTransactions.reduce((latest, current) => {
+      if (!latest) return current.updatedAt
+      return current.updatedAt.toMillis() > latest.toMillis() ? current.updatedAt : latest
+    }, null as Timestamp | null)
+  }
 
   return {
     confirmedCount: confirmed.length,
     pendingCount: pending.length,
     rejectedCount: rejected.length,
-    totalCount: transactions.length,
+    totalCount: validTransactions.length,
     confirmedTotal: confirmed.reduce((sum, t) => sum + t.amount, 0),
     pendingTotal: pending.reduce((sum, t) => sum + t.amount, 0),
+    lastActivity,
   }
 }

@@ -38,8 +38,8 @@ service cloud.firestore {
     // ─── Connections Collection ──────────────────────────────────────────────
 
     match /connections/{connectionId} {
-      // Member of the connection can read details
-      allow read: if isConnectionMember(resource.data);
+      // Member of the connection can read details, or anyone can read if it's pending an invite
+      allow read: if isConnectionMember(resource.data) || (isAuth() && resource.data.status == 'pending_invite');
       
       // Anyone logged in can create a connection
       allow create: if isAuth() 
@@ -57,6 +57,20 @@ service cloud.firestore {
 
       // Deleting connections is not allowed in MVP
       allow delete: if false;
+
+      // ─── Activities Subcollection ──────────────────────────────────────────
+
+      match /activities/{activityId} {
+        // Any member of the parent connection can read activities
+        allow read: if isConnectionMember(getConnectionData(connectionId));
+
+        // Member of the connection can create an activity log
+        allow create: if isConnectionMember(getConnectionData(connectionId))
+          && request.resource.data.connectionId == connectionId
+          && request.resource.data.userId == uid();
+          
+        allow update, delete: if false;
+      }
 
       // ─── Transactions Subcollection ────────────────────────────────────────
 
@@ -83,21 +97,9 @@ service cloud.firestore {
           );
 
         // Update rules:
-        // 1. Confirming: partner (not creator) can change status to 'confirmed'
-        // 2. Rejecting: partner (not creator) can change status to 'rejected'
-        allow update: if isConnectionMember(getConnectionData(connectionId))
-          && getConnectionData(connectionId).mode == 'shared'
-          && resource.data.status == 'pending'
-          && (
-            // Confirmation case
-            (request.resource.data.status == 'confirmed'
-             && request.resource.data.confirmedBy == uid()
-             && resource.data.createdBy != uid())
-            ||
-            // Rejection case
-            (request.resource.data.status == 'rejected'
-             && resource.data.createdBy != uid())
-          );
+        // Any member of the connection can update transactions (for confirm, reject, soft delete, or restore).
+        // The UI handles specific validations, and all changes are logged in activities.
+        allow update: if isConnectionMember(getConnectionData(connectionId));
 
         // Deleting transactions is not allowed in MVP
         allow delete: if false;

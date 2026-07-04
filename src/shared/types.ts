@@ -70,9 +70,13 @@ export interface Transaction {
   status: TransactionStatus
   confirmedBy: string | null
   confirmedAt: Timestamp | null
+  isDeleted?: boolean
+  deletedAt?: Timestamp | null
+  deletedBy?: string | null
   transactionDate: Timestamp
   createdAt: Timestamp
   updatedAt: Timestamp
+  updatedBy?: string
 }
 
 // ─── Balance ──────────────────────────────────────────────────────────────────
@@ -99,4 +103,27 @@ export interface TransactionStats {
   totalCount: number
   confirmedTotal: number
   pendingTotal: number
+  lastActivity: Timestamp | null
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+
+export type ActivityAction = 'created' | 'confirmed' | 'rejected' | 'deleted' | 'restored' | 'updated'
+
+export type TransactionDiffValue = string | number | boolean | null
+
+export interface TransactionDiff {
+  field: keyof Transaction
+  oldValue: TransactionDiffValue
+  newValue: TransactionDiffValue
+}
+
+export interface ActivityLogEntry {
+  id: string
+  connectionId: string
+  transactionId: string
+  action: ActivityAction
+  userId: string
+  createdAt: Timestamp
+  diff?: TransactionDiff[]
 }

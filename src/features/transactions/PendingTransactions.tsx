@@ -157,7 +157,7 @@ export function PendingTransactions({
       await confirmTransaction(connection.id, selected.id, appUser.id)
       toast.success('Операцію підтверджено!')
     } else {
-      await rejectTransaction(connection.id, selected.id)
+      await rejectTransaction(connection.id, selected.id, currentUser.id)
       toast.success('Операцію відхилено')
     }
   }

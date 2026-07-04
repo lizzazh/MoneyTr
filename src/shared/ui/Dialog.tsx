@@ -14,7 +14,7 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-chocolate/30 backdrop-blur-sm animate-fade-in"
@@ -24,13 +24,20 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
       {/* Content */}
       <div
         className={cn(
-          'relative w-full max-w-md bg-beige rounded-3xl shadow-card-lg border border-cream',
-          'animate-scale-in',
+          'relative w-full bg-beige shadow-card-lg border border-cream overflow-hidden',
+          'rounded-t-[32px] sm:rounded-3xl',
+          'max-h-[90vh] sm:max-h-none overflow-y-auto',
+          'sm:max-w-md',
+          'animate-slide-up sm:animate-scale-in',
           className
         )}
         role="dialog"
         aria-modal="true"
       >
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1.5 rounded-full bg-warm-gray/20" />
+        </div>
         {children}
       </div>
     </div>
@@ -45,7 +52,7 @@ export function DialogHeader({
   className?: string
 }) {
   return (
-    <div className={cn('px-6 pt-6 pb-4 border-b border-cream', className)}>
+    <div className={cn('px-6 pt-2 sm:pt-6 pb-4 border-b border-cream', className)}>
       {children}
     </div>
   )
@@ -83,7 +90,7 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        'px-6 pb-6 pt-4 border-t border-cream flex gap-3 justify-end',
+        'px-6 pb-6 pt-4 border-t border-cream flex gap-3 justify-end pb-safe',
         className
       )}
     >

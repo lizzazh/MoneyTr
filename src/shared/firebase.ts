@@ -7,7 +7,7 @@ import {
   CollectionReference,
   DocumentReference,
 } from 'firebase/firestore'
-import type { AppUser, Connection, Transaction } from '@/shared/types'
+import type { AppUser, Connection, Transaction, ActivityLogEntry } from '@/shared/types'
 
 // ─── Firebase Config ──────────────────────────────────────────────────────────
 
@@ -65,4 +65,15 @@ export function transactionDoc(
     'transactions',
     transactionId
   ) as DocumentReference<Omit<Transaction, 'id'>>
+}
+
+export function activitiesCol(
+  connectionId: string
+): CollectionReference<Omit<ActivityLogEntry, 'id'>> {
+  return collection(
+    db,
+    'connections',
+    connectionId,
+    'activities'
+  ) as CollectionReference<Omit<ActivityLogEntry, 'id'>>
 }

@@ -38,17 +38,17 @@ export function DashboardPage() {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
             <button
               onClick={() => setIsJoinOpen(true)}
-              className="btn-secondary gap-1.5 text-xs py-2 px-3 flex-1 sm:flex-initial"
+              className="btn-secondary gap-1.5 text-xs py-3 sm:py-2 px-3 w-full sm:w-auto"
             >
               <Link2 size={14} />
               Приєднатись за кодом
             </button>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="btn-primary gap-1.5 text-xs py-2 px-3 flex-1 sm:flex-initial"
+              className="btn-primary gap-1.5 text-xs py-3 sm:py-2 px-3 w-full sm:w-auto"
             >
               <Plus size={14} />
               Створити зв'язок

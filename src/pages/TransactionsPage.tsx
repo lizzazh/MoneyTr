@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '@/shared/auth-context'
 import { useConnectionById } from '@/features/connections/useConnections'
 import { useTransactions } from '@/features/transactions/useTransactions'
-import { TransactionTable } from '@/features/transactions/TransactionTable'
+import { TransactionTimeline } from '@/features/transactions/TransactionTimeline'
 import { AddTransactionForm } from '@/features/transactions/AddTransactionForm'
 import { Layout } from '@/shared/ui/Layout'
 import { SkeletonCard, SkeletonRow } from '@/shared/ui/Skeleton'
@@ -92,16 +92,29 @@ export function TransactionsPage() {
               {connection.name} ({partnerDisplayName})
             </p>
           </div>
+          <div className="hidden sm:block">
+            <button
+              onClick={() => setIsAddTxOpen(true)}
+              className="btn-primary gap-1.5"
+            >
+              <Plus size={16} /> Додати
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile FAB */}
+        <div className="sm:hidden fixed bottom-6 right-6 z-50">
           <button
             onClick={() => setIsAddTxOpen(true)}
-            className="btn-primary gap-1.5"
+            className="w-14 h-14 bg-chocolate text-milk rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform"
+            title="Додати операцію"
           >
-            <Plus size={16} /> Додати
+            <Plus size={28} />
           </button>
         </div>
 
-        {/* Main Table */}
-        <TransactionTable
+        {/* Main Timeline */}
+        <TransactionTimeline
           transactions={transactions}
           connection={connection}
           currentUser={appUser}

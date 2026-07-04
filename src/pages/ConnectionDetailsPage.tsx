@@ -7,7 +7,7 @@ import { calcBalance, calcStats } from '@/shared/lib/balance'
 import { BalanceCard } from '@/features/connections/BalanceCard'
 import { AddTransactionForm } from '@/features/transactions/AddTransactionForm'
 import { PendingTransactions } from '@/features/transactions/PendingTransactions'
-import { TransactionTable } from '@/features/transactions/TransactionTable'
+import { TransactionTimeline } from '@/features/transactions/TransactionTimeline'
 import { Layout } from '@/shared/ui/Layout'
 import type { AppUser } from '@/shared/types'
 import {
@@ -170,16 +170,30 @@ export function ConnectionDetailsPage() {
               currentUser={appUser}
               partner={partner || ({ id: 'partner', displayName: partnerDisplayName } as AppUser)}
               stats={stats}
+              connectionCreatedAt={connection.createdAt?.toDate()}
             />
 
-            {/* Actions */}
-            <button
-              onClick={() => setIsAddTxOpen(true)}
-              className="btn-primary w-full py-3"
-            >
-              <Plus size={18} />
-              Додати операцію
-            </button>
+            {/* Desktop Actions */}
+            <div className="hidden sm:block">
+              <button
+                onClick={() => setIsAddTxOpen(true)}
+                className="btn-primary w-full py-3"
+              >
+                <Plus size={18} />
+                Додати операцію
+              </button>
+            </div>
+
+            {/* Mobile FAB */}
+            <div className="sm:hidden fixed bottom-20 right-6 mb-safe z-50">
+              <button
+                onClick={() => setIsAddTxOpen(true)}
+                className="w-14 h-14 bg-chocolate text-milk rounded-full flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform"
+                title="Додати операцію"
+              >
+                <Plus size={28} />
+              </button>
+            </div>
 
             {/* Pending Approvals (Shared only) */}
             {isShared && partner && (
@@ -204,8 +218,8 @@ export function ConnectionDetailsPage() {
                   Повна історія
                 </Link>
               </div>
-              <TransactionTable
-                transactions={transactions}
+              <TransactionTimeline
+                transactions={transactions.slice(0, 5)}
                 connection={connection}
                 currentUser={appUser}
                 partner={partner}

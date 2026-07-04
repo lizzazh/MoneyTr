@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { Timestamp } from 'firebase/firestore'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { addTransaction } from './useTransactions'
+import { updateTransaction } from './useTransactions'
 import { useAuth } from '@/shared/auth-context'
 import {
   Dialog,
@@ -12,27 +13,29 @@ import {
   DialogBody,
   DialogFooter,
 } from '@/shared/ui/Dialog'
-import { PlusCircle } from 'lucide-react'
-import type { AppUser, Connection } from '@/shared/types'
+import { Save, AlertTriangle } from 'lucide-react'
+import type { AppUser, Connection, Transaction } from '@/shared/types'
 import { TransactionFormFields, transactionSchema, type TransactionFormData } from './TransactionFormFields'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface AddTransactionFormProps {
+interface EditTransactionFormProps {
   connection: Connection
   currentUser: AppUser
   partner: AppUser | null // null in personal mode
+  transaction: Transaction | null
   open: boolean
   onClose: () => void
 }
 
-export function AddTransactionForm({
+export function EditTransactionForm({
   connection,
   currentUser,
   partner,
+  transaction,
   open,
   onClose,
-}: AddTransactionFormProps) {
+}: EditTransactionFormProps) {
   const { appUser } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -45,7 +48,7 @@ export function AddTransactionForm({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -56,15 +59,29 @@ export function AddTransactionForm({
     },
   })
 
+  // Set default values when transaction changes
+  useEffect(() => {
+    if (transaction) {
+      const payerKey = transaction.payerId === currentUser.id ? 'me' : 'partner'
+      reset({
+        amount: transaction.amount,
+        description: transaction.description,
+        category: transaction.category,
+        method: transaction.method,
+        transactionDate: transaction.transactionDate.toDate().toISOString().split('T')[0],
+        payerKey,
+      })
+    }
+  }, [transaction, currentUser.id, reset])
+
   const handleClose = () => {
     reset()
     onClose()
   }
 
   const onSubmit = async (data: TransactionFormData) => {
-    if (!appUser) return
+    if (!appUser || !transaction) return
 
-    // Resolve payerId and beneficiaryId based on 'me'/'partner' selection
     let payerId = ''
     let beneficiaryId = ''
 
@@ -79,47 +96,58 @@ export function AddTransactionForm({
 
     setIsLoading(true)
     try {
-      await addTransaction({
+      await updateTransaction({
         connectionId: connection.id,
-        amount: data.amount,
-        currency: connection.currency,
-        description: data.description || '',
-        category: data.category,
-        method: data.method,
-        payerId,
-        beneficiaryId,
-        createdBy: appUser.id,
-        transactionDate: new Date(data.transactionDate),
+        transactionId: transaction.id,
+        updates: {
+          amount: data.amount,
+          description: data.description || '',
+          category: data.category,
+          method: data.method,
+          payerId,
+          beneficiaryId,
+          transactionDate: Timestamp.fromDate(new Date(data.transactionDate)),
+        },
+        currentTx: transaction,
+        updatedBy: appUser.id,
         isPersonal,
       })
 
-      if (isPersonal) {
-        toast.success('Операцію додано!')
-      } else {
-        toast.success('Операцію додано! Очікує підтвердження.')
-      }
+      toast.success('Зміни збережено!')
       handleClose()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Помилка при додаванні операції'
+      const msg = err instanceof Error ? err.message : 'Помилка при збереженні змін'
       toast.error(msg)
     } finally {
       setIsLoading(false)
     }
   }
 
+  const showWarning = !isPersonal && (transaction?.status === 'confirmed' || transaction?.status === 'rejected')
+
+  if (!transaction) return null
+
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogHeader>
-        <DialogTitle>Нова операція</DialogTitle>
+        <DialogTitle>Редагування операції</DialogTitle>
         <DialogDescription>
-          {isPersonal
-            ? 'Вкажіть суму та опис. Запис буде додано одразу.'
-            : 'Вкажіть хто платив. Партнер підтвердить транзакцію.'}
+          Внесіть необхідні зміни.
         </DialogDescription>
       </DialogHeader>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogBody>
+        <DialogBody className="space-y-4">
+          {showWarning && (
+            <div className="bg-amber/10 border border-amber/30 rounded-xl p-3 flex gap-3 text-sm text-amber-dark">
+              <AlertTriangle className="flex-shrink-0 mt-0.5" size={16} />
+              <p>
+                Ця операція вже була <b>{transaction.status === 'confirmed' ? 'підтверджена' : 'відхилена'}</b>. 
+                Зміна суми, дати або учасників скасує її статус і вона знову потребуватиме підтвердження від партнера.
+              </p>
+            </div>
+          )}
+
           <TransactionFormFields
             register={register}
             errors={errors}
@@ -140,15 +168,14 @@ export function AddTransactionForm({
           </button>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !isDirty}
             className="btn-primary"
           >
-            <PlusCircle size={16} />
-            {isLoading ? 'Збереження...' : 'Додати'}
+            <Save size={16} />
+            {isLoading ? 'Збереження...' : 'Зберегти зміни'}
           </button>
         </DialogFooter>
       </form>
     </Dialog>
   )
 }
-

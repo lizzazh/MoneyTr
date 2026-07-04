@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Resolves user record from DB
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(uid())).data;
+    }
+
+    // Checks if user is a member of the connection
+    function isConnectionMember(connData) {
+      return isAuth() && connData.memberIds.hasAny([uid()]);
+    }
+
+    function getConnectionData(connectionId) {
+      return get(/databases/$(database)/documents/connections/$(connectionId)).data;
+    }
+
+    // ─── Users Collection ────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      // Anyone can read profiles (e.g. to check login uniqueness or display nickname)
+      allow read: if true;
+      // Only the user themselves can write their profile
+      allow write: if isAuth() && uid() == userId;
+    }
+
+    // ─── Connections Collection ──────────────────────────────────────────────
+
+    match /connections/{connectionId} {
+      // Member of the connection can read details
+      allow read: if isConnectionMember(resource.data);
+      
+      // Anyone logged in can create a connection
+      allow create: if isAuth() 
+        && request.resource.data.createdBy == uid()
+        && request.resource.data.memberIds.hasAny([uid()]);
+      
+      // Shared connection update (joining by invite code):
+      // Allows adding second member if status transitions from pending_invite to active
+      allow update: if isAuth()
+        && resource.data.status == 'pending_invite'
+        && request.resource.data.status == 'active'
+        && request.resource.data.memberIds.size() == 2
+        && resource.data.memberIds[0] == request.resource.data.memberIds[0]
+        && request.resource.data.memberIds[1] == uid();
+
+      // Deleting connections is not allowed in MVP
+      allow delete: if false;
+
+      // ─── Transactions Subcollection ────────────────────────────────────────
+
+      match /transactions/{transactionId} {
+        // Any member of the parent connection can read transactions
+        allow read: if isConnectionMember(getConnectionData(connectionId));
+
+        // Create transaction rules:
+        // Member of the connection can create. Validates amount, currency, status.
+        allow create: if isConnectionMember(getConnectionData(connectionId))
+          && request.resource.data.connectionId == connectionId
+          && request.resource.data.createdBy == uid()
+          && request.resource.data.amount > 0
+          && request.resource.data.payerId != request.resource.data.beneficiaryId
+          && request.resource.data.currency == getConnectionData(connectionId).currency
+          && (
+            // Shared mode: must start as pending
+            (getConnectionData(connectionId).mode == 'shared' && request.resource.data.status == 'pending')
+            ||
+            // Personal mode: starts as confirmed, confirmedBy is creator
+            (getConnectionData(connectionId).mode == 'personal' 
+             && request.resource.data.status == 'confirmed'
+             && request.resource.data.confirmedBy == uid())
+          );
+
+        // Update rules:
+        // 1. Confirming: partner (not creator) can change status to 'confirmed'
+        // 2. Rejecting: partner (not creator) can change status to 'rejected'
+        allow update: if isConnectionMember(getConnectionData(connectionId))
+          && getConnectionData(connectionId).mode == 'shared'
+          && resource.data.status == 'pending'
+          && (
+            // Confirmation case
+            (request.resource.data.status == 'confirmed'
+             && request.resource.data.confirmedBy == uid()
+             && resource.data.createdBy != uid())
+            ||
+            // Rejection case
+            (request.resource.data.status == 'rejected'
+             && resource.data.createdBy != uid())
+          );
+
+        // Deleting transactions is not allowed in MVP
+        allow delete: if false;
+      }
+    }
+  }
+}

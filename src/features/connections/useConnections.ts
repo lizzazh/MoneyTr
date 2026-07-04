@@ -1,0 +1,255 @@
+import { useState, useEffect } from 'react'
+import {
+  addDoc,
+  query,
+  where,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+} from 'firebase/firestore'
+import { connectionsCol, db } from '@/shared/firebase'
+import type { Connection, Currency, AppUser, ConnectionType, ConnectionMode } from '@/shared/types'
+
+// ─── Generate Invite Code ─────────────────────────────────────────────────────
+
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let part1 = ''
+  let part2 = ''
+  for (let i = 0; i < 4; i++) {
+    part1 += chars.charAt(Math.floor(Math.random() * chars.length))
+    part2 += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return `${part1}-${part2}`
+}
+
+// ─── useConnections (List) ────────────────────────────────────────────────────
+
+interface UseConnectionsReturn {
+  connections: Connection[]
+  isLoading: boolean
+  error: string | null
+}
+
+export function useConnections(userId: string | undefined): UseConnectionsReturn {
+  const [connections, setConnections] = useState<Connection[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!userId) {
+      setConnections([])
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+
+    // Query where memberIds contains current user's ID
+    const q = query(connectionsCol, where('memberIds', 'array-contains', userId))
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Connection))
+        // Sort active first, then newest
+        list.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis() ?? 0
+          const bTime = b.createdAt?.toMillis() ?? 0
+          return bTime - aTime
+        })
+        setConnections(list)
+        setIsLoading(false)
+        setError(null)
+      },
+      (err) => {
+        console.error('useConnections error:', err)
+        setError('Помилка завантаження зв\'язків')
+        setIsLoading(false)
+      }
+    )
+
+    return unsubscribe
+  }, [userId])
+
+  return { connections, isLoading, error }
+}
+
+// ─── useConnectionById ────────────────────────────────────────────────────────
+
+interface UseConnectionByIdReturn {
+  connection: Connection | null
+  partner: AppUser | null
+  isLoading: boolean
+  error: string | null
+}
+
+export function useConnectionById(
+  connectionId: string | undefined,
+  currentUserId: string | undefined
+): UseConnectionByIdReturn {
+  const [connection, setConnection] = useState<Connection | null>(null)
+  const [partner, setPartner] = useState<AppUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!connectionId || !currentUserId) {
+      setConnection(null)
+      setPartner(null)
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'connections', connectionId),
+      async (snap) => {
+        try {
+          if (!snap.exists()) {
+            setConnection(null)
+            setPartner(null)
+            setIsLoading(false)
+            return
+          }
+
+          const conn = { id: snap.id, ...snap.data() } as Connection
+
+          // Security check: is current user a member?
+          if (!conn.memberIds.includes(currentUserId)) {
+            setConnection(null)
+            setPartner(null)
+            setError('Немає доступу до цього зв\'язку')
+            setIsLoading(false)
+            return
+          }
+
+          setConnection(conn)
+
+          // Resolve partner user details if shared mode and second user exists
+          const otherUserId = conn.memberIds.find((id) => id !== currentUserId)
+          if (conn.mode === 'shared' && otherUserId) {
+            const partnerSnap = await getDoc(doc(db, 'users', otherUserId))
+            if (partnerSnap.exists()) {
+              setPartner({ id: partnerSnap.id, ...partnerSnap.data() } as AppUser)
+            } else {
+              setPartner(null)
+            }
+          } else {
+            setPartner(null)
+          }
+
+          setError(null)
+        } catch (err) {
+          console.error('useConnectionById error:', err)
+          setError('Помилка завантаження деталей зв\'язку')
+        } finally {
+          setIsLoading(false)
+        }
+      },
+      (err) => {
+        console.error('useConnectionById snapshot error:', err)
+        setError('Помилка завантаження деталей зв\'язку')
+        setIsLoading(false)
+      }
+    )
+
+    return unsubscribe
+  }, [connectionId, currentUserId])
+
+  return { connection, partner, isLoading, error }
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+
+export interface CreateConnectionInput {
+  name: string
+  type: ConnectionType
+  mode: ConnectionMode
+  currency: Currency
+  creatorId: string
+  virtualPartnerName?: string // only for personal mode
+}
+
+export async function createConnection(
+  input: CreateConnectionInput
+): Promise<string> {
+  const isShared = input.mode === 'shared'
+  const inviteCode = isShared ? generateInviteCode() : null
+  const status = isShared ? 'pending_invite' : 'active'
+  const now = serverTimestamp() as Timestamp
+
+  const ref = await addDoc(connectionsCol, {
+    name: input.name,
+    type: input.type,
+    mode: input.mode,
+    currency: input.currency,
+    memberIds: [input.creatorId],
+    virtualPartnerName: !isShared ? (input.virtualPartnerName || 'Партнер') : null,
+    inviteCode,
+    status,
+    createdBy: input.creatorId,
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  return ref.id
+}
+
+export interface JoinConnectionResult {
+  success: boolean
+  error?: string
+  connectionId?: string
+}
+
+export async function joinConnection(
+  inviteCode: string,
+  userId: string
+): Promise<JoinConnectionResult> {
+  const cleanCode = inviteCode.trim().toUpperCase()
+
+  // Find connection with this inviteCode
+  const q = query(
+    connectionsCol,
+    where('inviteCode', '==', cleanCode),
+    where('status', '==', 'pending_invite')
+  )
+
+  const snap = await getDocs(q)
+  if (snap.empty) {
+    return {
+      success: false,
+      error: 'Недійсний або вже використаний код запрошення.',
+    }
+  }
+
+  const connDoc = snap.docs[0]
+  const connData = connDoc.data() as Connection
+
+  // Check if current user is already the creator
+  if (connData.memberIds.includes(userId)) {
+    return {
+      success: false,
+      error: 'Ви є творцем цього зв\'язку.',
+    }
+  }
+
+  // Update memberIds and set status to active
+  const ref = doc(db, 'connections', connDoc.id)
+  await updateDoc(ref, {
+    memberIds: arrayUnion(userId),
+    status: 'active' as Connection['status'],
+    updatedAt: serverTimestamp(),
+  })
+
+  return {
+    success: true,
+    connectionId: connDoc.id,
+  }
+}

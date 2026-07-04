@@ -132,12 +132,14 @@ export function useConnectionById(
           const conn = { id: snap.id, ...snap.data() } as Connection
 
           // Security check: is current user an active member?
-          if (!conn.activeMemberIds?.includes(currentUserId)) {
-            setConnection(null)
-            setPartner(null)
-            setError('Немає доступу до цього зв\'язку')
-            setIsLoading(false)
-            return
+          if (conn.activeMemberIds && Array.isArray(conn.activeMemberIds)) {
+            if (!conn.activeMemberIds.includes(currentUserId)) {
+              setConnection(null)
+              setPartner(null)
+              setError('Немає доступу до цього зв\'язку')
+              setIsLoading(false)
+              return
+            }
           }
 
           setConnection(conn)

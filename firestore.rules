@@ -22,9 +22,12 @@ service cloud.firestore {
       return isAuth() && connData.memberIds.hasAny([uid()]);
     }
     
-    // Checks if user is an active member
+    // Checks if user is an active member (supports legacy docs)
     function isConnectionActiveMember(connData) {
-      return isAuth() && connData.activeMemberIds.hasAny([uid()]);
+      return isAuth() && (
+        ('activeMemberIds' in connData && connData.activeMemberIds.hasAny([uid()])) ||
+        (!('activeMemberIds' in connData) && connData.memberIds.hasAny([uid()]))
+      );
     }
 
     function getConnectionData(connectionId) {

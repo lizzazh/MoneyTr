@@ -284,22 +284,22 @@ export async function deleteConnection(connectionId: string): Promise<void> {
   await deleteDoc(ref)
 }
 
-export async function leaveConnection(connectionId: string, userId: string, currentActiveMembers: string[]): Promise<void> {
+export async function leaveConnection(connectionId: string, userId: string, currentActiveMembers: string[] | undefined): Promise<void> {
   const ref = doc(db, 'connections', connectionId)
-  const newActive = currentActiveMembers.filter(id => id !== userId)
   
-  if (newActive.length === 0) {
-    // Both left, so delete it? For MVP, just remove from active
-    await updateDoc(ref, {
-      activeMemberIds: newActive,
-      status: 'partner_left',
-      updatedAt: serverTimestamp(),
-    })
-  } else {
-    await updateDoc(ref, {
-      activeMemberIds: newActive,
-      status: 'partner_left',
-      updatedAt: serverTimestamp(),
-    })
+  // If currentActiveMembers is undefined, it's a legacy connection, so active members are all memberIds
+  let activeList = currentActiveMembers
+  if (!activeList) {
+    const snap = await getDoc(ref)
+    const data = snap.data() as Connection
+    activeList = data.memberIds || []
   }
+
+  const newActive = activeList.filter(id => id !== userId)
+  
+  await updateDoc(ref, {
+    activeMemberIds: newActive,
+    status: 'partner_left',
+    updatedAt: serverTimestamp(),
+  })
 }

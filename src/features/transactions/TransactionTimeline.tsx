@@ -319,45 +319,47 @@ export function TransactionTimeline({
                             {formatCurrency(tx.amount, connection.currency)}
                           </span>
 
-                          <DropdownMenu.Root>
-                            <DropdownMenu.Trigger asChild>
-                              <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-cream text-warm-gray transition-colors outline-none focus-visible:ring-2 focus-visible:ring-chocolate/20">
-                                <MoreVertical size={16} />
-                              </button>
-                            </DropdownMenu.Trigger>
-                            <DropdownMenu.Portal>
-                              <DropdownMenu.Content
-                                align="end"
-                                className="bg-white rounded-2xl shadow-xl border border-cream p-1 min-w-[160px] animate-in fade-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95"
-                                sideOffset={4}
-                              >
-                                {!tx.isDeleted && (
-                                  <>
-                                    <DropdownMenu.Item 
-                                      className="flex items-center gap-2 px-3 py-2 text-sm text-chocolate hover:bg-cream rounded-xl cursor-pointer outline-none transition-colors"
-                                      onClick={() => setEditingTx(tx)}
-                                    >
-                                      <Edit2 size={14} /> Редагувати
-                                    </DropdownMenu.Item>
+                          {isPersonal && (
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger asChild>
+                                <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-cream text-warm-gray transition-colors outline-none focus-visible:ring-2 focus-visible:ring-chocolate/20">
+                                  <MoreVertical size={16} />
+                                </button>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Portal>
+                                <DropdownMenu.Content
+                                  align="end"
+                                  className="bg-white rounded-2xl shadow-xl border border-cream p-1 min-w-[160px] animate-in fade-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95"
+                                  sideOffset={4}
+                                >
+                                  {!tx.isDeleted && (
+                                    <>
+                                      <DropdownMenu.Item 
+                                        className="flex items-center gap-2 px-3 py-2 text-sm text-chocolate hover:bg-cream rounded-xl cursor-pointer outline-none transition-colors"
+                                        onClick={() => setEditingTx(tx)}
+                                      >
+                                        <Edit2 size={14} /> Редагувати
+                                      </DropdownMenu.Item>
+                                      <DropdownMenu.Item
+                                        onClick={() => handleDelete(tx)}
+                                        className="flex items-center gap-2 px-3 py-2 text-sm text-rose hover:bg-rose/10 rounded-xl cursor-pointer outline-none transition-colors"
+                                      >
+                                        <Trash2 size={14} /> Видалити
+                                      </DropdownMenu.Item>
+                                    </>
+                                  )}
+                                  {tx.isDeleted && (
                                     <DropdownMenu.Item
-                                      onClick={() => handleDelete(tx)}
-                                      className="flex items-center gap-2 px-3 py-2 text-sm text-rose hover:bg-rose/10 rounded-xl cursor-pointer outline-none transition-colors"
+                                      onClick={() => handleRestore(tx)}
+                                      className="flex items-center gap-2 px-3 py-2 text-sm text-olive hover:bg-olive/10 rounded-xl cursor-pointer outline-none transition-colors"
                                     >
-                                      <Trash2 size={14} /> Видалити
+                                      <Undo2 size={14} /> Відновити
                                     </DropdownMenu.Item>
-                                  </>
-                                )}
-                                {tx.isDeleted && (
-                                  <DropdownMenu.Item
-                                    onClick={() => handleRestore(tx)}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm text-olive hover:bg-olive/10 rounded-xl cursor-pointer outline-none transition-colors"
-                                  >
-                                    <Undo2 size={14} /> Відновити
-                                  </DropdownMenu.Item>
-                                )}
-                              </DropdownMenu.Content>
-                            </DropdownMenu.Portal>
-                          </DropdownMenu.Root>
+                                  )}
+                                </DropdownMenu.Content>
+                              </DropdownMenu.Portal>
+                            </DropdownMenu.Root>
+                          )}
                         </div>
                       </motion.div>
                     )

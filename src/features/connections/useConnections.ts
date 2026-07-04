@@ -11,6 +11,7 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
+  deleteDoc,
 } from 'firebase/firestore'
 import { connectionsCol, db } from '@/shared/firebase'
 import type { Connection, Currency, AppUser, ConnectionType, ConnectionMode } from '@/shared/types'
@@ -56,7 +57,16 @@ export function useConnections(userId: string | undefined): UseConnectionsReturn
     const unsubscribe = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Connection))
+        let list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Connection))
+        
+        // Local filtering for activeMemberIds
+        list = list.filter(c => {
+          if (c.activeMemberIds && Array.isArray(c.activeMemberIds)) {
+            return c.activeMemberIds.includes(userId);
+          }
+          return true; // Legacy connections
+        });
+
         // Sort active first, then newest
         list.sort((a, b) => {
           const aTime = a.createdAt?.toMillis() ?? 0
@@ -121,8 +131,8 @@ export function useConnectionById(
 
           const conn = { id: snap.id, ...snap.data() } as Connection
 
-          // Security check: is current user a member?
-          if (!conn.memberIds.includes(currentUserId)) {
+          // Security check: is current user an active member?
+          if (!conn.activeMemberIds?.includes(currentUserId)) {
             setConnection(null)
             setPartner(null)
             setError('Немає доступу до цього зв\'язку')
@@ -191,6 +201,7 @@ export async function createConnection(
     mode: input.mode,
     currency: input.currency,
     memberIds: [input.creatorId],
+    activeMemberIds: [input.creatorId],
     virtualPartnerName: !isShared ? (input.virtualPartnerName || 'Партнер') : null,
     inviteCode,
     status,
@@ -244,6 +255,7 @@ export async function joinConnection(
   const ref = doc(db, 'connections', connDoc.id)
   await updateDoc(ref, {
     memberIds: arrayUnion(userId),
+    activeMemberIds: arrayUnion(userId),
     status: 'active' as Connection['status'],
     updatedAt: serverTimestamp(),
   })
@@ -251,5 +263,41 @@ export async function joinConnection(
   return {
     success: true,
     connectionId: connDoc.id,
+  }
+}
+
+export async function updateConnection(
+  connectionId: string,
+  updates: Partial<Pick<Connection, 'name' | 'virtualPartnerName'>>
+): Promise<void> {
+  const ref = doc(db, 'connections', connectionId)
+  await updateDoc(ref, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteConnection(connectionId: string): Promise<void> {
+  const ref = doc(db, 'connections', connectionId)
+  await deleteDoc(ref)
+}
+
+export async function leaveConnection(connectionId: string, userId: string, currentActiveMembers: string[]): Promise<void> {
+  const ref = doc(db, 'connections', connectionId)
+  const newActive = currentActiveMembers.filter(id => id !== userId)
+  
+  if (newActive.length === 0) {
+    // Both left, so delete it? For MVP, just remove from active
+    await updateDoc(ref, {
+      activeMemberIds: newActive,
+      status: 'partner_left',
+      updatedAt: serverTimestamp(),
+    })
+  } else {
+    await updateDoc(ref, {
+      activeMemberIds: newActive,
+      status: 'partner_left',
+      updatedAt: serverTimestamp(),
+    })
   }
 }

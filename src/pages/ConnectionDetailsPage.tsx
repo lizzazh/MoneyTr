@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/auth-context'
-import { useConnectionById } from '@/features/connections/useConnections'
+import { useConnectionById, deleteConnection, leaveConnection } from '@/features/connections/useConnections'
 import { useTransactions } from '@/features/transactions/useTransactions'
 import { calcBalance, calcStats } from '@/shared/lib/balance'
 import { BalanceCard } from '@/features/connections/BalanceCard'
@@ -15,9 +15,17 @@ import {
   ArrowLeft,
   Share2,
   RefreshCw,
+  Settings,
+  Edit2,
+  Trash2,
+  LogOut,
+  AlertTriangle,
 } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { SkeletonCard, SkeletonRow } from '@/shared/ui/Skeleton'
 import { toast } from 'sonner'
+import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogBody } from '@/shared/ui/Dialog'
+import { EditConnectionForm } from '@/features/connections/EditConnectionForm'
 
 export function ConnectionDetailsPage() {
   const { connectionId } = useParams<{ connectionId: string }>()
@@ -38,6 +46,11 @@ export function ConnectionDetailsPage() {
   } = useTransactions(connectionId || null)
 
   const [isAddTxOpen, setIsAddTxOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false)
+  
+  const navigate = useNavigate()
 
   const isLoading = isConnLoading || isTxLoading
   const error = connError || txError
@@ -104,6 +117,28 @@ export function ConnectionDetailsPage() {
     toast.success('Код запрошення скопійовано!')
   }
 
+  const handleDelete = async () => {
+    try {
+      await deleteConnection(connection.id)
+      toast.success('Зв\'язок видалено')
+      navigate('/')
+    } catch (err) {
+      toast.error('Не вдалося видалити зв\'язок')
+    }
+  }
+
+  const handleLeave = async () => {
+    try {
+      await leaveConnection(connection.id, appUser.id, connection.activeMemberIds)
+      toast.success('Ви вийшли зі зв\'язку')
+      navigate('/')
+    } catch (err) {
+      toast.error('Не вдалося вийти зі зв\'язку')
+    }
+  }
+
+  const partnerLeft = isShared && connection.status === 'partner_left'
+
   return (
     <Layout pendingCount={pendingCountForMe}>
       <div className="space-y-6 animate-fade-in">
@@ -121,18 +156,63 @@ export function ConnectionDetailsPage() {
           </span>
         </div>
 
-        {/* Title */}
-        <div>
-          <h1 className="text-2xl font-bold text-chocolate">{connection.name}</h1>
-          {isShared && (
-            <p className="text-xs text-warm-gray mt-1">
-              {isPendingInvite ? (
-                <span className="text-amber font-semibold">Очікує підключення партнера</span>
-              ) : (
-                <span>Спільний баланс з {partnerDisplayName}</span>
-              )}
-            </p>
-          )}
+        {/* Title and Settings */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-chocolate">{connection.name}</h1>
+            {isShared && (
+              <p className="text-xs text-warm-gray mt-1">
+                {isPendingInvite ? (
+                  <span className="text-amber font-semibold">Очікує підключення партнера</span>
+                ) : partnerLeft ? (
+                  <span className="text-rose font-semibold flex items-center gap-1">
+                    <AlertTriangle size={12} />
+                    Учасник вийшов зі зв'язку
+                  </span>
+                ) : (
+                  <span>Спільний баланс з {partnerDisplayName}</span>
+                )}
+              </p>
+            )}
+          </div>
+
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-cream text-chocolate transition-colors outline-none focus-visible:ring-2 focus-visible:ring-chocolate/20">
+                <Settings size={20} />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                className="bg-white rounded-2xl shadow-xl border border-cream p-1 min-w-[200px] animate-in fade-in zoom-in-95 z-50"
+                sideOffset={8}
+              >
+                <DropdownMenu.Item 
+                  onClick={() => setIsEditOpen(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-chocolate hover:bg-cream rounded-xl cursor-pointer outline-none transition-colors"
+                >
+                  <Edit2 size={16} /> {isShared ? 'Редагувати назву' : 'Редагувати зв\'язок'}
+                </DropdownMenu.Item>
+                
+                {isShared ? (
+                  <DropdownMenu.Item 
+                    onClick={() => setIsLeaveConfirmOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-rose hover:bg-rose/10 rounded-xl cursor-pointer outline-none transition-colors"
+                  >
+                    <LogOut size={16} /> Вийти зі зв'язку
+                  </DropdownMenu.Item>
+                ) : (
+                  <DropdownMenu.Item 
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-rose hover:bg-rose/10 rounded-xl cursor-pointer outline-none transition-colors"
+                  >
+                    <Trash2 size={16} /> Видалити зв'язок
+                  </DropdownMenu.Item>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
 
         {/* Shared Connection: Pending Invite View */}
@@ -229,7 +309,6 @@ export function ConnectionDetailsPage() {
         )}
       </div>
 
-      {/* Add Transaction Dialog */}
       <AddTransactionForm
         connection={connection}
         currentUser={appUser}
@@ -237,6 +316,52 @@ export function ConnectionDetailsPage() {
         open={isAddTxOpen}
         onClose={() => setIsAddTxOpen(false)}
       />
+
+      <EditConnectionForm
+        connection={connection}
+        open={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      />
+
+      {/* Delete Personal Connection Confirm */}
+      <Dialog open={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)}>
+        <DialogHeader>
+          <DialogTitle><span className="text-rose">Видалити зв'язок?</span></DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <p className="text-sm text-warm-gray">
+            Ви впевнені? Усі операції цього зв'язку будуть видалені назавжди.
+          </p>
+        </DialogBody>
+        <DialogFooter className="flex gap-2">
+          <button onClick={() => setIsDeleteConfirmOpen(false)} className="btn-secondary flex-1">
+            Скасувати
+          </button>
+          <button onClick={handleDelete} className="bg-rose text-white rounded-2xl py-3 px-4 font-bold flex-1 hover:bg-rose/90 transition-colors">
+            Видалити
+          </button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* Leave Shared Connection Confirm */}
+      <Dialog open={isLeaveConfirmOpen} onClose={() => setIsLeaveConfirmOpen(false)}>
+        <DialogHeader>
+          <DialogTitle><span className="text-rose">Вийти зі зв'язку?</span></DialogTitle>
+        </DialogHeader>
+        <DialogBody>
+          <p className="text-sm text-warm-gray">
+            Ви більше не зможете переглядати цей облік та додавати операції. У партнера він залишиться.
+          </p>
+        </DialogBody>
+        <DialogFooter className="flex gap-2">
+          <button onClick={() => setIsLeaveConfirmOpen(false)} className="btn-secondary flex-1">
+            Скасувати
+          </button>
+          <button onClick={handleLeave} className="bg-rose text-white rounded-2xl py-3 px-4 font-bold flex-1 hover:bg-rose/90 transition-colors">
+            Вийти
+          </button>
+        </DialogFooter>
+      </Dialog>
     </Layout>
   )
 }

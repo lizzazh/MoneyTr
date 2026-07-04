@@ -17,9 +17,14 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(uid())).data;
     }
 
-    // Checks if user is a member of the connection
+    // Checks if user is a member of the connection (used for read access to support legacy docs)
     function isConnectionMember(connData) {
       return isAuth() && connData.memberIds.hasAny([uid()]);
+    }
+    
+    // Checks if user is an active member
+    function isConnectionActiveMember(connData) {
+      return isAuth() && connData.activeMemberIds.hasAny([uid()]);
     }
 
     function getConnectionData(connectionId) {
@@ -46,17 +51,18 @@ service cloud.firestore {
         && request.resource.data.createdBy == uid()
         && request.resource.data.memberIds.hasAny([uid()]);
       
-      // Shared connection update (joining by invite code):
-      // Allows adding second member if status transitions from pending_invite to active
-      allow update: if isAuth()
+      // Shared connection update (joining by invite code) OR active member updating it:
+      allow update: if isConnectionActiveMember(resource.data) || (isAuth()
         && resource.data.status == 'pending_invite'
         && request.resource.data.status == 'active'
         && request.resource.data.memberIds.size() == 2
         && resource.data.memberIds[0] == request.resource.data.memberIds[0]
-        && request.resource.data.memberIds[1] == uid();
+        && request.resource.data.memberIds[1] == uid());
 
-      // Deleting connections is not allowed in MVP
-      allow delete: if false;
+      // Deleting connections is allowed for personal mode by creator
+      allow delete: if isConnectionActiveMember(resource.data) 
+        && resource.data.mode == 'personal'
+        && resource.data.createdBy == uid();
 
       // ─── Activities Subcollection ──────────────────────────────────────────
 
@@ -65,7 +71,7 @@ service cloud.firestore {
         allow read: if isConnectionMember(getConnectionData(connectionId));
 
         // Member of the connection can create an activity log
-        allow create: if isConnectionMember(getConnectionData(connectionId))
+        allow create: if isConnectionActiveMember(getConnectionData(connectionId))
           && request.resource.data.connectionId == connectionId
           && request.resource.data.userId == uid();
           
@@ -80,7 +86,7 @@ service cloud.firestore {
 
         // Create transaction rules:
         // Member of the connection can create. Validates amount, currency, status.
-        allow create: if isConnectionMember(getConnectionData(connectionId))
+        allow create: if isConnectionActiveMember(getConnectionData(connectionId))
           && request.resource.data.connectionId == connectionId
           && request.resource.data.createdBy == uid()
           && request.resource.data.amount > 0
@@ -97,9 +103,9 @@ service cloud.firestore {
           );
 
         // Update rules:
-        // Any member of the connection can update transactions (for confirm, reject, soft delete, or restore).
+        // Any active member of the connection can update transactions (for confirm, reject, soft delete, or restore).
         // The UI handles specific validations, and all changes are logged in activities.
-        allow update: if isConnectionMember(getConnectionData(connectionId));
+        allow update: if isConnectionActiveMember(getConnectionData(connectionId));
 
         // Deleting transactions is not allowed in MVP
         allow delete: if false;

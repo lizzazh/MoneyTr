@@ -16,7 +16,7 @@ export type Currency = 'UAH' | 'USD' | 'EUR'
 // ─── Connection ───────────────────────────────────────────────────────────────
 
 export type ConnectionMode = 'personal' | 'shared'
-export type ConnectionStatus = 'active' | 'pending_invite'
+export type ConnectionStatus = 'active' | 'archived' | 'pending_invite' | 'partner_left'
 export type ConnectionType =
   | 'couple'
   | 'friend'
@@ -33,7 +33,8 @@ export interface Connection {
   mode: ConnectionMode
   currency: Currency
   memberIds: string[]
-  virtualPartnerName: string | null
+  activeMemberIds: string[]
+  virtualPartnerName?: string | null
   inviteCode: string | null
   status: ConnectionStatus
   createdBy: string

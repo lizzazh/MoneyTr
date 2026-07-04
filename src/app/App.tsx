@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/shared/auth-context'
 import { Toaster } from 'sonner'
 import { DashboardPage } from '@/pages/DashboardPage'
@@ -10,7 +10,7 @@ import { ProtectedRoute, GuestRoute } from './guards'
 export function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           {/* Guest routes */}
           <Route element={<GuestRoute />}>
@@ -27,7 +27,7 @@ export function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
       
       {/* Toast notifications */}
       <Toaster

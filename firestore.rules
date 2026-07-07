@@ -58,9 +58,8 @@ service cloud.firestore {
       allow update: if isConnectionActiveMember(resource.data) || (isAuth()
         && resource.data.status == 'pending_invite'
         && request.resource.data.status == 'active'
-        && request.resource.data.memberIds.size() == 2
-        && resource.data.memberIds[0] == request.resource.data.memberIds[0]
-        && request.resource.data.memberIds[1] == uid());
+        && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+        && request.resource.data.memberIds.hasAny([uid()]));
 
       // Deleting connections is allowed for personal mode by creator
       allow delete: if isConnectionActiveMember(resource.data) 

@@ -100,19 +100,19 @@ export function TransactionDetails({
         </div>
 
         {/* Direction */}
-        <div className="bg-cream/30 rounded-2xl p-4 flex items-center justify-between text-sm">
-          <div className="flex flex-col items-center gap-1">
+        <div className="bg-cream/30 rounded-2xl p-4 flex items-center justify-between text-sm gap-2">
+          <div className="flex flex-col items-center gap-1 w-[80px] sm:w-[100px] flex-shrink-0">
             <UserAvatar name={getPayerName()} className="w-10 h-10" color="chocolate" />
-            <span className="font-medium text-chocolate">{getPayerName()}</span>
+            <span className="font-medium text-chocolate truncate w-full text-center">{getPayerName()}</span>
           </div>
-          <div className="flex-1 border-t-2 border-dashed border-warm-gray/30 mx-4 relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-milk px-2 text-xs text-warm-gray font-medium uppercase tracking-wider">
+          <div className="flex-1 border-t-2 border-dashed border-warm-gray/30 relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-milk px-1 sm:px-2 text-[10px] sm:text-xs text-warm-gray font-medium uppercase tracking-wider whitespace-nowrap">
               Оплатив(ла) за
             </div>
           </div>
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-1 w-[80px] sm:w-[100px] flex-shrink-0">
             <UserAvatar name={getBeneficiaryName()} className="w-10 h-10" color="amber" />
-            <span className="font-medium text-chocolate">{getBeneficiaryName()}</span>
+            <span className="font-medium text-chocolate truncate w-full text-center">{getBeneficiaryName()}</span>
           </div>
         </div>
 

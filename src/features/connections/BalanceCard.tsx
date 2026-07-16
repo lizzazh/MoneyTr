@@ -80,8 +80,8 @@ export function BalanceCard({
         {isSettled ? (
           <div className="flex items-center gap-4">
             <CheckCircle2 size={48} className="text-olive-light flex-shrink-0" />
-            <div>
-              <p className="text-3xl font-bold tracking-tight text-milk mb-1">
+            <div className="min-w-0">
+              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-milk mb-1 break-words">
                 Баланс закрито 🎉
               </p>
               <p className="text-milk/60 font-medium">Ніхто нікому не винен</p>
@@ -93,11 +93,11 @@ export function BalanceCard({
               key={balance.amount}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl sm:text-5xl font-extrabold tracking-tighter text-milk mb-2"
+              className="text-4xl sm:text-5xl font-extrabold tracking-tighter text-milk mb-2 break-all"
             >
               {formatCurrency(balance.amount, currency)}
             </motion.p>
-            <p className="text-milk/70 font-medium text-lg">
+            <p className="text-milk/70 font-medium text-lg leading-snug">
               {partnerOwesMe ? (
                 <>
                   <span className="text-milk font-semibold">{partner.displayName}</span> винен вам
@@ -116,7 +116,7 @@ export function BalanceCard({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 pt-6 border-t border-milk/10">
         <p className="text-milk/50 text-sm font-medium">{lastActivityText}</p>
         
-        <div className="flex gap-4">
+        <div className="flex flex-row gap-4 w-full sm:w-auto justify-start sm:justify-end">
           <MiniStat
             label="Підтверджено"
             value={formatCurrency(stats.confirmedTotal, currency)}
@@ -148,14 +148,14 @@ function MiniStat({
   warn?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-1 items-end">
+    <div className="flex flex-col gap-1 items-start sm:items-end">
       <div className="flex items-center gap-1.5">
         <Icon size={14} className={warn ? 'text-amber' : 'text-milk/40'} />
-        <span className="text-milk/50 text-xs font-medium uppercase tracking-wider">
+        <span className="text-milk/50 text-[10px] sm:text-xs font-medium uppercase tracking-wider">
           {label}
         </span>
       </div>
-      <p className={`font-bold text-sm tracking-wide ${warn ? 'text-amber' : 'text-milk'}`}>
+      <p className={`font-bold text-sm sm:text-base tracking-wide ${warn ? 'text-amber' : 'text-milk'}`}>
         {value}
       </p>
     </div>

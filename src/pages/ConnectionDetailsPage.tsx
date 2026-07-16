@@ -161,9 +161,9 @@ export function ConnectionDetailsPage() {
         </div>
 
         {/* Title and Settings */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-chocolate">{connection.name}</h1>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-chocolate break-words">{connection.name}</h1>
             {isShared && (
               <p className="text-xs text-warm-gray mt-1">
                 {isPendingInvite ? (

@@ -36,10 +36,11 @@ export function EditConnectionForm({ connection, open, onClose }: EditConnection
 
   const onSubmit = async (data: FormValues) => {
     try {
-      await updateConnection(connection.id, {
-        name: data.name,
-        virtualPartnerName: isPersonal ? data.virtualPartnerName || 'Партнер' : undefined,
-      })
+      const updates: any = { name: data.name }
+      if (isPersonal) {
+        updates.virtualPartnerName = data.virtualPartnerName || 'Партнер'
+      }
+      await updateConnection(connection.id, updates)
       toast.success('Налаштування збережено')
       onClose()
     } catch (err) {

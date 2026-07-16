@@ -18,6 +18,7 @@ import type {
   ActivityAction,
   ActivityLogEntry,
 } from '@/shared/types'
+import { assertOnline } from '@/shared/lib/offline'
 
 // ─── useTransactions ──────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ export async function logActivity(
   userId: string,
   diff?: import('@/shared/types').TransactionDiff[]
 ): Promise<void> {
+  assertOnline()
   const col = activitiesCol(connectionId)
   await addDoc(col, {
     connectionId,
@@ -153,6 +155,7 @@ export function validateTransaction(input: AddTransactionInput): string | null {
 export async function addTransaction(
   input: AddTransactionInput
 ): Promise<void> {
+  assertOnline()
   const validationError = validateTransaction(input)
   if (validationError) throw new Error(validationError)
 
@@ -210,6 +213,7 @@ const MEANINGFUL_FIELDS: (keyof Transaction)[] = [
 ]
 
 export async function updateTransaction(input: UpdateTransactionInput): Promise<void> {
+  assertOnline()
   const { connectionId, transactionId, updates, currentTx, updatedBy, isPersonal } = input
 
   // Generate diff
@@ -271,6 +275,7 @@ export async function confirmTransaction(
   transactionId: string,
   confirmedBy: string
 ): Promise<void> {
+  assertOnline()
   const ref = transactionDoc(connectionId, transactionId)
   await updateDoc(ref, {
     status: 'confirmed' as TransactionStatus,
@@ -286,6 +291,7 @@ export async function rejectTransaction(
   transactionId: string,
   rejectedBy: string
 ): Promise<void> {
+  assertOnline()
   const ref = transactionDoc(connectionId, transactionId)
   await updateDoc(ref, {
     status: 'rejected' as TransactionStatus,
@@ -303,6 +309,7 @@ export async function softDeleteTransaction(
   transactionId: string,
   deletedBy: string
 ): Promise<void> {
+  assertOnline()
   const ref = transactionDoc(connectionId, transactionId)
   await updateDoc(ref, {
     isDeleted: true,
@@ -318,6 +325,7 @@ export async function restoreTransaction(
   transactionId: string,
   restoredBy: string
 ): Promise<void> {
+  assertOnline()
   const ref = transactionDoc(connectionId, transactionId)
   await updateDoc(ref, {
     isDeleted: false,

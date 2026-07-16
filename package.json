@@ -6,11 +6,12 @@
   "homepage": "https://lizzazh.github.io/MoneyTr",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "validate:env": "node scripts/validate-env.mjs",
+    "build": "npm run validate:env && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist --dotfiles"
+    "deploy": "npm run validate:env && gh-pages -d dist --dotfiles"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

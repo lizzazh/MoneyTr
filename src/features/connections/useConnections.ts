@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore'
 import { connectionsCol, db } from '@/shared/firebase'
 import type { Connection, Currency, AppUser, ConnectionType, ConnectionMode } from '@/shared/types'
+import { assertOnline } from '@/shared/lib/offline'
 
 // ─── Generate Invite Code ─────────────────────────────────────────────────────
 
@@ -192,6 +193,7 @@ export interface CreateConnectionInput {
 export async function createConnection(
   input: CreateConnectionInput
 ): Promise<string> {
+  assertOnline()
   const isShared = input.mode === 'shared'
   const inviteCode = isShared ? generateInviteCode() : null
   const status = isShared ? 'pending_invite' : 'active'
@@ -225,6 +227,7 @@ export async function joinConnection(
   inviteCode: string,
   userId: string
 ): Promise<JoinConnectionResult> {
+  assertOnline()
   const cleanCode = inviteCode.trim().toUpperCase()
 
   // Find connection with this inviteCode
@@ -272,6 +275,7 @@ export async function updateConnection(
   connectionId: string,
   updates: Partial<Pick<Connection, 'name' | 'virtualPartnerName'>>
 ): Promise<void> {
+  assertOnline()
   const ref = doc(db, 'connections', connectionId)
   await updateDoc(ref, {
     ...updates,
@@ -280,11 +284,13 @@ export async function updateConnection(
 }
 
 export async function deleteConnection(connectionId: string): Promise<void> {
+  assertOnline()
   const ref = doc(db, 'connections', connectionId)
   await deleteDoc(ref)
 }
 
 export async function leaveConnection(connectionId: string, userId: string, currentActiveMembers: string[] | undefined): Promise<void> {
+  assertOnline()
   const ref = doc(db, 'connections', connectionId)
   
   // If currentActiveMembers is undefined, it's a legacy connection, so active members are all memberIds

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { addTransaction } from './useTransactions'
 import { useAuth } from '@/shared/auth-context'
+import { useOnlineGuard } from '@/shared/hooks/useOnlineGuard'
 import {
   Dialog,
   DialogHeader,
@@ -34,6 +35,7 @@ export function AddTransactionForm({
   onClose,
 }: AddTransactionFormProps) {
   const { appUser } = useAuth()
+  const { guardOnline } = useOnlineGuard()
   const [isLoading, setIsLoading] = useState(false)
 
   const isPersonal = connection.mode === 'personal'
@@ -62,6 +64,7 @@ export function AddTransactionForm({
   }
 
   const onSubmit = async (data: TransactionFormData) => {
+    if (!guardOnline()) return
     if (!appUser) return
 
     // Resolve payerId and beneficiaryId based on 'me'/'partner' selection

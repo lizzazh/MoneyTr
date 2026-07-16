@@ -10,6 +10,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { InstallPwaButton } from '@/features/pwa/InstallPwaButton'
+import { OfflineBanner } from '@/shared/ui/OfflineBanner'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -45,7 +47,7 @@ export function Layout({ children, pendingCount = 0 }: LayoutProps) {
   return (
     <div className="min-h-screen bg-milk flex flex-col">
       {/* Top nav */}
-      <header className="sticky top-0 z-40 bg-beige/80 backdrop-blur-md border-b border-cream">
+      <header className="sticky top-0 z-40 bg-beige/80 backdrop-blur-md border-b border-cream pt-safe">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2 group">
@@ -99,6 +101,12 @@ export function Layout({ children, pendingCount = 0 }: LayoutProps) {
                   className="bg-white rounded-2xl shadow-xl border border-cream p-1 min-w-[160px] animate-in fade-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95 z-50"
                   sideOffset={4}
                 >
+                  <DropdownMenu.Group>
+                    <DropdownMenu.Item asChild onSelect={(e) => e.preventDefault()}>
+                      <InstallPwaButton />
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Group>
+                  <DropdownMenu.Separator className="h-px bg-cream my-1" />
                   <DropdownMenu.Item
                     onClick={handleLogout}
                     className="flex items-center gap-2 px-3 py-2 text-sm text-rose hover:bg-rose/10 rounded-xl cursor-pointer outline-none transition-colors"
@@ -111,6 +119,9 @@ export function Layout({ children, pendingCount = 0 }: LayoutProps) {
           </div>
         </div>
       </header>
+
+      {/* Offline Banner */}
+      <OfflineBanner />
 
       {/* Main */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 pb-24 sm:pb-6">

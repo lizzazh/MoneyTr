@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { confirmTransaction, rejectTransaction } from './useTransactions'
 import { useAuth } from '@/shared/auth-context'
+import { useOnlineGuard } from '@/shared/hooks/useOnlineGuard'
 import { formatCurrency, formatDate, TRANSACTION_CATEGORY_LABELS } from '@/shared/lib/utils'
 import {
   Dialog,
@@ -129,6 +130,7 @@ export function PendingTransactions({
   partner,
 }: PendingTransactionsProps) {
   const { appUser } = useAuth()
+  const { guardOnline } = useOnlineGuard()
   const [selected, setSelected] = useState<Transaction | null>(null)
   const [action, setAction] = useState<'confirm' | 'reject' | null>(null)
 
@@ -151,6 +153,7 @@ export function PendingTransactions({
   }
 
   const handleAction = async () => {
+    if (!guardOnline()) return
     if (!selected || !action || !appUser) return
 
     if (action === 'confirm') {

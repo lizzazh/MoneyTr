@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { updateTransaction } from './useTransactions'
 import { useAuth } from '@/shared/auth-context'
+import { useOnlineGuard } from '@/shared/hooks/useOnlineGuard'
 import {
   Dialog,
   DialogHeader,
@@ -37,6 +38,7 @@ export function EditTransactionForm({
   onClose,
 }: EditTransactionFormProps) {
   const { appUser } = useAuth()
+  const { guardOnline } = useOnlineGuard()
   const [isLoading, setIsLoading] = useState(false)
 
   const isPersonal = connection.mode === 'personal'
@@ -80,6 +82,7 @@ export function EditTransactionForm({
   }
 
   const onSubmit = async (data: TransactionFormData) => {
+    if (!guardOnline()) return
     if (!appUser || !transaction) return
 
     let payerId = ''

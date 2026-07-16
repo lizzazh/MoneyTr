@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/shared/auth-context'
+import { useOnlineGuard } from '@/shared/hooks/useOnlineGuard'
 import { useConnectionById, deleteConnection, leaveConnection } from '@/features/connections/useConnections'
 import { useTransactions } from '@/features/transactions/useTransactions'
 import { calcBalance, calcStats } from '@/shared/lib/balance'
@@ -30,6 +31,7 @@ import { EditConnectionForm } from '@/features/connections/EditConnectionForm'
 export function ConnectionDetailsPage() {
   const { connectionId } = useParams<{ connectionId: string }>()
   const { appUser } = useAuth()
+  const { guardOnline } = useOnlineGuard()
 
 
   const {
@@ -118,6 +120,7 @@ export function ConnectionDetailsPage() {
   }
 
   const handleDelete = async () => {
+    if (!guardOnline()) return
     try {
       await deleteConnection(connection.id)
       toast.success('Зв\'язок видалено')
@@ -128,6 +131,7 @@ export function ConnectionDetailsPage() {
   }
 
   const handleLeave = async () => {
+    if (!guardOnline()) return
     try {
       await leaveConnection(connection.id, appUser.id, connection.activeMemberIds)
       toast.success('Ви вийшли зі зв\'язку')

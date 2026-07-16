@@ -6,6 +6,7 @@ import { ConnectionDetailsPage } from '@/pages/ConnectionDetailsPage'
 import { TransactionsPage } from '@/pages/TransactionsPage'
 import { AuthPage } from '@/features/auth/AuthPage'
 import { ProtectedRoute, GuestRoute } from './guards'
+import { PwaUpdatePrompt } from '@/features/pwa/PwaUpdatePrompt'
 
 export function App() {
   return (
@@ -28,6 +29,9 @@ export function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
+
+      {/* PWA Service Worker updates */}
+      <PwaUpdatePrompt />
       
       {/* Toast notifications */}
       <Toaster

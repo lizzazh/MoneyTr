@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 import { createConnection } from './useConnections'
 import { useAuth } from '@/shared/auth-context'
+import { useOnlineGuard } from '@/shared/hooks/useOnlineGuard'
 import { Input, Select } from '@/shared/ui/FormFields'
 import {
   Dialog,
@@ -47,6 +48,7 @@ export function CreateConnectionForm({
   onCreated,
 }: CreateConnectionFormProps) {
   const { appUser } = useAuth()
+  const { guardOnline } = useOnlineGuard()
   const [isLoading, setIsLoading] = useState(false)
 
   const {
@@ -73,6 +75,7 @@ export function CreateConnectionForm({
   }
 
   const onSubmit = async (data: FormData) => {
+    if (!guardOnline()) return
     if (!appUser) return
     setIsLoading(true)
     try {

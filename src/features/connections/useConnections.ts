@@ -228,7 +228,14 @@ export async function joinConnection(
   userId: string
 ): Promise<JoinConnectionResult> {
   assertOnline()
-  const cleanCode = inviteCode.trim().toUpperCase()
+  
+  // Clean up input: remove spaces, make uppercase
+  let cleanCode = inviteCode.trim().toUpperCase().replace(/\s+/g, '')
+  
+  // Auto-insert hyphen if the user typed 8 chars without it
+  if (cleanCode.length === 8 && !cleanCode.includes('-')) {
+    cleanCode = `${cleanCode.slice(0, 4)}-${cleanCode.slice(4)}`
+  }
 
   // Find connection with this inviteCode
   const q = query(
@@ -237,7 +244,17 @@ export async function joinConnection(
     where('status', '==', 'pending_invite')
   )
 
-  const snap = await getDocs(q)
+  let snap;
+  try {
+    snap = await getDocs(q)
+  } catch (err: any) {
+    console.error('Error finding connection by code:', err)
+    return {
+      success: false,
+      error: 'Помилка бази даних під час пошуку коду.',
+    }
+  }
+
   if (snap.empty) {
     return {
       success: false,

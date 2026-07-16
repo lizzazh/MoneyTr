@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useInstallPrompt } from './useInstallPrompt'
 import { IosInstallInstructions } from './IosInstallInstructions'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
 /**
  * Install PWA button shown in the user dropdown menu.
@@ -29,13 +30,17 @@ export function InstallPwaButton() {
 
   return (
     <>
-      <button
-        onClick={handleClick}
-        className="flex items-center gap-2 px-3 py-2 text-sm text-chocolate hover:bg-cream/60 rounded-xl cursor-pointer outline-none transition-colors w-full"
-      >
-        <Download size={14} />
-        Встановити застосунок
-      </button>
+      <DropdownMenu.Item asChild onSelect={(e) => {
+        if (isIosSafariBrowser) e.preventDefault()
+      }}>
+        <button
+          onClick={handleClick}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-chocolate hover:bg-cream/60 rounded-xl cursor-pointer outline-none transition-colors w-full"
+        >
+          <Download size={14} />
+          Встановити застосунок
+        </button>
+      </DropdownMenu.Item>
 
       <IosInstallInstructions
         open={showIosSheet}

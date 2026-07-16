@@ -102,9 +102,7 @@ export function Layout({ children, pendingCount = 0 }: LayoutProps) {
                   sideOffset={4}
                 >
                   <DropdownMenu.Group>
-                    <DropdownMenu.Item asChild onSelect={(e) => e.preventDefault()}>
-                      <InstallPwaButton />
-                    </DropdownMenu.Item>
+                    <InstallPwaButton />
                   </DropdownMenu.Group>
                   <DropdownMenu.Separator className="h-px bg-cream my-1" />
                   <DropdownMenu.Item

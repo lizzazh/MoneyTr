@@ -58,7 +58,7 @@ export function ConnectionCard({ connection, currentUserId }: ConnectionCardProp
                 Очікує партнера (Код: {connection.inviteCode})
               </span>
             ) : balance?.isSettled ? (
-              <span className="text-olive font-medium">Баланс закритий</span>
+              <span className="text-olive font-medium">Баланс: {formatCurrency(0, connection.currency)}</span>
             ) : balance ? (
               balance.debtorId === currentUserId ? (
                 <span className="text-rose font-medium">

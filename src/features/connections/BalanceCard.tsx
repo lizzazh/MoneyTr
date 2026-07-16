@@ -20,6 +20,7 @@ interface BalanceCardProps {
   partner: AppUser
   stats: TransactionStats
   connectionCreatedAt?: Date
+  onSettleClick?: () => void
 }
 
 export function BalanceCard({
@@ -29,6 +30,7 @@ export function BalanceCard({
   partner,
   stats,
   connectionCreatedAt,
+  onSettleClick,
 }: BalanceCardProps) {
   const isSettled = balance.isSettled
   const iOwePartner = balance.debtorId === currentUser.id
@@ -78,36 +80,55 @@ export function BalanceCard({
       {/* Main balance amount */}
       <div>
         {isSettled ? (
-          <div className="flex items-center gap-4">
-            <CheckCircle2 size={48} className="text-olive-light flex-shrink-0" />
+          <div className="flex items-start gap-4">
+            <div className="bg-olive-light/20 p-3 rounded-2xl flex-shrink-0 mt-1">
+              <CheckCircle2 size={32} className="text-olive-light" />
+            </div>
             <div className="min-w-0">
-              <p className="text-2xl sm:text-3xl font-bold tracking-tight text-milk mb-1 break-words">
-                Баланс закрито 🎉
+              <motion.p
+                key="settled"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl sm:text-5xl font-extrabold tracking-tighter text-milk mb-2 break-all"
+              >
+                {formatCurrency(0, currency)}
+              </motion.p>
+              <p className="text-milk/70 font-medium text-lg leading-snug">
+                Ніхто нікому не винен
               </p>
-              <p className="text-milk/60 font-medium">Ніхто нікому не винен</p>
             </div>
           </div>
         ) : (
-          <div>
-            <motion.p
-              key={balance.amount}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-4xl sm:text-5xl font-extrabold tracking-tighter text-milk mb-2 break-all"
-            >
-              {formatCurrency(balance.amount, currency)}
-            </motion.p>
-            <p className="text-milk/70 font-medium text-lg leading-snug">
-              {partnerOwesMe ? (
-                <>
-                  <span className="text-milk font-semibold">{partner.displayName}</span> винен вам
-                </>
-              ) : (
-                <>
-                  Ви винні <span className="text-milk font-semibold">{partner.displayName}</span>
-                </>
-              )}
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <motion.p
+                key={balance.amount}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl sm:text-5xl font-extrabold tracking-tighter text-milk mb-2 break-all"
+              >
+                {formatCurrency(balance.amount, currency)}
+              </motion.p>
+              <p className="text-milk/70 font-medium text-lg leading-snug">
+                {partnerOwesMe ? (
+                  <>
+                    <span className="text-milk font-semibold">{partner.displayName}</span> винен вам
+                  </>
+                ) : (
+                  <>
+                    Ви винні <span className="text-milk font-semibold">{partner.displayName}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            {onSettleClick && (
+              <button
+                onClick={onSettleClick}
+                className="btn-secondary w-full sm:w-auto bg-milk/10 text-milk border-none hover:bg-milk/20 flex-shrink-0 py-2.5 transition-colors"
+              >
+                <CheckCircle2 size={16} /> Погасити
+              </button>
+            )}
           </div>
         )}
       </div>

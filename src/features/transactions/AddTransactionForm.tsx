@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -25,6 +25,7 @@ interface AddTransactionFormProps {
   partner: AppUser | null // null in personal mode
   open: boolean
   onClose: () => void
+  initialData?: Partial<TransactionFormData>
 }
 
 export function AddTransactionForm({
@@ -33,6 +34,7 @@ export function AddTransactionForm({
   partner,
   open,
   onClose,
+  initialData,
 }: AddTransactionFormProps) {
   const { appUser } = useAuth()
   const { guardOnline } = useOnlineGuard()
@@ -51,12 +53,28 @@ export function AddTransactionForm({
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
-      category: 'other',
-      method: 'transfer',
-      transactionDate: new Date().toISOString().split('T')[0],
-      payerKey: 'me',
+      amount: initialData?.amount || undefined,
+      description: initialData?.description || '',
+      category: initialData?.category || 'other',
+      method: initialData?.method || 'transfer',
+      transactionDate: initialData?.transactionDate || new Date().toISOString().split('T')[0],
+      payerKey: initialData?.payerKey || 'me',
     },
   })
+
+  // Update form if initialData changes (e.g. user clicks "Погасити борг" then closes, then clicks again)
+  useEffect(() => {
+    if (open) {
+      reset({
+        amount: initialData?.amount || undefined,
+        description: initialData?.description || '',
+        category: initialData?.category || 'other',
+        method: initialData?.method || 'transfer',
+        transactionDate: initialData?.transactionDate || new Date().toISOString().split('T')[0],
+        payerKey: initialData?.payerKey || 'me',
+      })
+    }
+  }, [open, initialData, reset])
 
   const handleClose = () => {
     reset()

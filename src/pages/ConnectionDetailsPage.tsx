@@ -51,6 +51,7 @@ export function ConnectionDetailsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false)
+  const [settleTxData, setSettleTxData] = useState<any>(null)
   
   const navigate = useNavigate()
 
@@ -255,6 +256,16 @@ export function ConnectionDetailsPage() {
               partner={partner || ({ id: 'partner', displayName: partnerDisplayName } as AppUser)}
               stats={stats}
               connectionCreatedAt={connection.createdAt?.toDate()}
+              onSettleClick={() => {
+                setSettleTxData({
+                  amount: balance.amount,
+                  description: 'Погашення боргу',
+                  category: 'other',
+                  method: 'transfer',
+                  payerKey: balance.debtorId === appUser.id ? 'me' : 'partner',
+                })
+                setIsAddTxOpen(true)
+              }}
             />
 
             {/* Desktop Actions */}
@@ -318,7 +329,11 @@ export function ConnectionDetailsPage() {
         currentUser={appUser}
         partner={partner}
         open={isAddTxOpen}
-        onClose={() => setIsAddTxOpen(false)}
+        onClose={() => {
+          setIsAddTxOpen(false)
+          setTimeout(() => setSettleTxData(null), 300) // Clear after animation
+        }}
+        initialData={settleTxData || undefined}
       />
 
       <EditConnectionForm
